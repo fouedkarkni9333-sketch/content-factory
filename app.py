@@ -9,7 +9,6 @@ app = Flask(__name__)
 
 PROJECT_FILE = "dynamic_global_project.json"
 
-# بنك الأفكار والمواضيع المتجددة (محرك الأفكار البذرة للمرحلة الثانية)
 TRENDING_TOPICS = [
     {
         "title": "ثورة الذكاء الاصطناعي في حياتنا اليومية",
@@ -22,10 +21,6 @@ TRENDING_TOPICS = [
     {
         "title": "الابتكار الرقمي وقوة الأفكار البسيطة",
         "script": "كيف يمكن لفكرة برمجية بسيطة أن تتحول إلى نظام قوي ومؤثر بجهد فردي."
-    },
-    {
-        "title": "عالم البيانات الخفي والأنظمة الذكية",
-        "script": "البيانات هي وقود العصر الحديث، وكيف تتعامل الأنظمة الآلية معها بدقة متناهية."
     }
 ]
 
@@ -41,7 +36,7 @@ dashboard_html = '''
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>مصنع المحتوى الذكي - المرحلة الثانية</title>
+    <title>مصنع المحتوى الذكي</title>
     <style>
         :root { background: #0f172a; color: #f8fafc; font-family: Tahoma, sans-serif; }
         body { margin: 0; padding: 20px; }
@@ -58,15 +53,13 @@ dashboard_html = '''
 </head>
 <body>
     <div class="container">
-        <h1>☁️ مصنع المحتوى (المرحلة الثانية: محرك الأفكار)</h1>
-        
+        <h1>☁️ مصنع المحتوى الذكي</h1>
         <div class="generator-card">
-            <h2>🧠 توليد محتوى ذكي ومتجدد تلقائياً</h2>
+            <h2>🧠 توليد محتوى صوتي جديد</h2>
             <form method="POST" action="/generate">
-                <button type="submit">تشغيل محرك الأفكار وتوليد ملف جديد 🚀</button>
+                <button type="submit">توليد وانتاج صوتي الآن 🚀</button>
             </form>
         </div>
-
         <h2>📂 أرشيف المحتوى المنتج</h2>
         {% if data %}
             {% for item_id, details in data.items() %}
@@ -80,7 +73,7 @@ dashboard_html = '''
             </div>
             {% endfor %}
         {% else %}
-            <p style="text-align: center; color: #64748b;">لا يوجد محتوى بعد، اضغط على زر التوليد للبدء.</p>
+            <p style="text-align: center; color: #64748b;">لا يوجد محتوى بعد.</p>
         {% endif %}
     </div>
 </body>
@@ -94,21 +87,17 @@ def home():
 
 @app.route('/generate', methods=['POST'])
 def generate():
-    # اختيار فكرة عشوائية ومتجددة من بنك الأفكار (محرك الأفكار)
+    current_content = load_project_data()
     selected_topic = random.choice(TRENDING_TOPICS)
     
     timestamp_id = datetime.now().strftime("%Y%m%d_%H%M%S")
     timestamp_display = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     audio_filename = f"audio_{timestamp_id}.mp3"
     
-    current_content = load_project_data()
-    
-    # توليد ملف الصوت باستخدام gTTS
     try:
         tts = gTTS(text=selected_topic["script"], lang="ar", slow=False)
         tts.save(audio_filename)
         
-        # إضافة المحتوى الجديد إلى رأس القائمة
         new_entry = {
             "language": "Arabic",
             "title": selected_topic["title"],
@@ -117,15 +106,13 @@ def generate():
             "timestamp": timestamp_display
         }
         
-        # حفظ المعرف الجديد
         updated_content = {timestamp_id: new_entry}
-        updated_content.update(current_content) # الاحتفاظ بالأرشيف السابق
+        updated_content.update(current_content)
         
         with open(PROJECT_FILE, "w", encoding="utf-8") as f:
             json.dump(updated_content, f, ensure_ascii=False, indent=4)
-            
     except Exception as e:
-        print(f"خطأ في توليد المحتوى: {e}")
+        print(f"Error: {e}")
 
     return redirect(url_for('home'))
 

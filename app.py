@@ -1,33 +1,39 @@
 from flask import Flask, render_template_string, request, redirect, url_for, send_from_directory
 import os
-import sqlite3
-import requests
-from gtts import gTTS
-import time
-import json as pyjson
+import json
+import random
+from datetime import datetime
+from gTTS import gTTS
 
 app = Flask(__name__)
 
-DB_FILE = "core_content_factory.db"
-GEMINI_API_KEY = "AQ.Ab8RN6J3WsWtB2umoB1J7yvyursUBVbGLCcsXwsMlRq1MXggag"
+PROJECT_FILE = "dynamic_global_project.json"
 
-def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS projects (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            language TEXT,
-            title TEXT,
-            script TEXT,
-            audio_file TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    conn.commit()
-    conn.close()
+# بنك الأفكار والمواضيع المتجددة (محرك الأفكار البذرة للمرحلة الثانية)
+TRENDING_TOPICS = [
+    {
+        "title": "ثورة الذكاء الاصطناعي في حياتنا اليومية",
+        "script": "كيف يغير الذكاء الاصطناعي تفاصيل حياتنا اليومية وطريقة عملنا بسرعة مذهلة."
+    },
+    {
+        "title": "أسرار التكنولوجيا العميقة ومستقبل المستقبل",
+        "script": "نظرة سريعة على التقنيات الناشئة التي ستعيد صياغة مستقبل البشرية في السنوات القادمة."
+    },
+    {
+        "title": "الابتكار الرقمي وقوة الأفكار البسيطة",
+        "script": "كيف يمكن لفكرة برمجية بسيطة أن تتحول إلى نظام قوي ومؤثر بجهد فردي."
+    },
+    {
+        "title": "عالم البيانات الخفي والأنظمة الذكية",
+        "script": "البيانات هي وقود العصر الحديث، وكيف تتعامل الأنظمة الآلية معها بدقة متناهية."
+    }
+]
 
-init_db()
+def load_project_data():
+    if os.path.exists(PROJECT_FILE):
+        with open(PROJECT_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
 
 dashboard_html = '''
 <!doctype html>
@@ -35,45 +41,46 @@ dashboard_html = '''
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>مصنع المحتوى السحابي الذكي</title>
+    <title>مصنع المحتوى الذكي - المرحلة الثانية</title>
     <style>
         :root { background: #0f172a; color: #f8fafc; font-family: Tahoma, sans-serif; }
         body { margin: 0; padding: 20px; }
-        .container { max-width: 800px; margin: auto; }
+        .container { max-width: 900px; margin: auto; }
         h1 { text-align: center; color: #38bdf8; }
-        .box { background: #1e293b; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #334155; text-align: center; }
-        button { background: #0284c7; color: #fff; border: none; padding: 14px 20px; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; width: 100%; }
+        .generator-card { background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 1px solid #334155; text-align: center; }
+        button { background: #0284c7; color: #fff; border: none; padding: 14px 20px; border-radius: 8px; font-size: 16px; cursor: pointer; width: 100%; font-weight: bold; }
         button:hover { background: #0369a1; }
-        .card { background: #1e293b; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-right: 4px solid #38bdf8; }
+        .card { background: #1e293b; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-right: 5px solid #38bdf8; }
         audio { width: 100%; margin-top: 10px; filter: invert(1); }
-        .time { font-size: 11px; color: #94a3b8; float: left; }
+        .lang-tag { background: #0284c7; padding: 3px 8px; border-radius: 4px; font-size: 12px; }
+        .time-tag { color: #94a3b8; font-size: 13px; margin-bottom: 5px; display: block; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>☁️ مصنع المحتوى (يعمل على السحاب)</h1>
+        <h1>☁️ مصنع المحتوى (المرحلة الثانية: محرك الأفكار)</h1>
         
-        <div class="box">
-            <h3>توليد محتوى جديد عبر Gemini AI</h3>
+        <div class="generator-card">
+            <h2>🧠 توليد محتوى ذكي ومتجدد تلقائياً</h2>
             <form method="POST" action="/generate">
-                <button type="submit">توليد وانتاج صوتي الآن 🚀</button>
+                <button type="submit">تشغيل محرك الأفكار وتوليد ملف جديد 🚀</button>
             </form>
         </div>
 
         <h2>📂 أرشيف المحتوى المنتج</h2>
-        {% if items %}
-            {% for item in items %}
+        {% if data %}
+            {% for item_id, details in data.items() %}
             <div class="card">
-                <span class="time">{{ item[5] }}</span>
-                <h3>{{ item[2] }} <span style="font-size: 12px; color: #38bdf8;">({{ item[1] }})</span></h3>
-                <p><strong>السكريبت:</strong> {{ item[3] }}</p>
+                <span class="time-tag">🕒 {{ details['timestamp'] }}</span>
+                <h3><span>{{ details['title'] }}</span> <span class="lang-tag">{{ details['language'] }}</span></h3>
+                <p><strong>السكريبت:</strong> {{ details['script'] }}</p>
                 <audio controls>
-                    <source src="/audio/{{ item[4] }}?t={{ time_now }}" type="audio/mp3">
+                    <source src="/audio/{{ details['audio_file'] }}" type="audio/mp3">
                 </audio>
             </div>
             {% endfor %}
         {% else %}
-            <p style="text-align: center; color: #94a3b8;">لا يوجد محتوى بعد، اضغط على زر التوليد للبدء.</p>
+            <p style="text-align: center; color: #64748b;">لا يوجد محتوى بعد، اضغط على زر التوليد للبدء.</p>
         {% endif %}
     </div>
 </body>
@@ -82,71 +89,49 @@ dashboard_html = '''
 
 @app.route('/')
 def home():
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute('SELECT id, language, title, script, audio_file, created_at FROM projects ORDER BY id DESC LIMIT 10')
-    items = cursor.fetchall()
-    conn.close()
-    return render_template_string(dashboard_html, items=items, time_now=int(time.time()))
+    data = load_project_data()
+    return render_template_string(dashboard_html, data=data)
 
 @app.route('/generate', methods=['POST'])
 def generate():
-    title = "ابتكار رقمي ذكي"
-    script = "الذكاء الاصطناعي يغير طريقة تفاعلنا مع التكنولوجيا الحديثة."
-    language = "Arabic"
-
-    try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-        prompt = "Write a short, viral 1-sentence video script and a catchy title about future technology in Arabic. Return ONLY valid JSON with keys: 'title' and 'script'."
-        
-        headers = {'Content-Type': 'application/json'}
-        payload = {"contents": [{"parts": [{"text": prompt}]}]}
-        
-        response = requests.post(url, headers=headers, json=payload, timeout=10)
-        
-        if response.status_code == 200:
-            res_body = response.json()
-            text_response = res_body['candidates'][0]['content']['parts'][0]['text'].strip()
-            
-            if text_response.startswith("```json"):
-                text_response = text_response[7:-3].strip()
-            elif text_response.startswith("```"):
-                text_response = text_response[3:-3].strip()
-                
-            parsed = pyjson.loads(text_response)
-            title = parsed.get("title", title)
-            script = parsed.get("script", script)
-    except Exception as e:
-        print(f"Gemini API Error: {e}")
-
-    filename = f"audio_{int(time.time())}.mp3"
-    filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
+    # اختيار فكرة عشوائية ومتجددة من بنك الأفكار (محرك الأفكار)
+    selected_topic = random.choice(TRENDING_TOPICS)
     
+    timestamp_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp_display = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    audio_filename = f"audio_{timestamp_id}.mp3"
+    
+    current_content = load_project_data()
+    
+    # توليد ملف الصوت باستخدام gTTS
     try:
-        tts = gTTS(text=script, lang="ar", slow=False)
-        tts.save(filepath)
+        tts = gTTS(text=selected_topic["script"], lang="ar", slow=False)
+        tts.save(audio_filename)
+        
+        # إضافة المحتوى الجديد إلى رأس القائمة
+        new_entry = {
+            "language": "Arabic",
+            "title": selected_topic["title"],
+            "script": selected_topic["script"],
+            "audio_file": audio_filename,
+            "timestamp": timestamp_display
+        }
+        
+        # حفظ المعرف الجديد
+        updated_content = {timestamp_id: new_entry}
+        updated_content.update(current_content) # الاحتفاظ بالأرشيف السابق
+        
+        with open(PROJECT_FILE, "w", encoding="utf-8") as f:
+            json.dump(updated_content, f, ensure_ascii=False, indent=4)
+            
     except Exception as e:
-        print(f"TTS Error: {e}")
-
-    try:
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO projects (language, title, script, audio_file)
-            VALUES (?, ?, ?, ?)
-        ''', (language, title, script, filename))
-        conn.commit()
-        conn.close()
-    except Exception as db_e:
-        print(f"DB Error: {db_e}")
+        print(f"خطأ في توليد المحتوى: {e}")
 
     return redirect(url_for('home'))
 
 @app.route('/audio/<filename>')
 def serve_audio(filename):
-    directory = os.path.dirname(os.path.abspath(__file__))
-    return send_from_directory(directory, filename)
+    return send_from_directory('.', filename)
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=False)

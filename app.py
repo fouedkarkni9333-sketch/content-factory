@@ -1,59 +1,52 @@
-import random
+import os
 from flask import Flask, jsonify, render_template_string, request
+import google.generativeai as genai
 
 app = Flask(__name__)
 
+# قراءة مفتاح الذكاء الاصطناعي بشكل آمن من إعدادات السيرفر
+API_KEY = os.environ.get("GEMINI_API_KEY")
+if API_KEY:
+  genai.configure(api_key=API_KEY)
+
+model = genai.GenerativeModel("gemini-1.5-flash")
+
+# قائمة شاملة تضم أكثر من 30 لغة عالمية لتغطية كافة شعوب العالم
 WORLD_LANGUAGES = {
-    "ar": "Arabic",
-    "en": "English",
-    "fr": "French",
-    "es": "Spanish",
-    "de": "German",
-    "it": "Italian",
-    "ru": "Russian",
-    "zh": "Chinese",
-    "ja": "Japanese",
-    "hi": "Hindi",
-    "pt": "Portuguese",
-    "tr": "Turkish",
-    "ko": "Korean",
-    "nl": "Dutch",
-    "pl": "Polish",
-    "sv": "Swedish",
-    "vi": "Vietnamese",
-    "id": "Indonesian",
-    "fa": "Persian",
-    "ur": "Urdu",
-    "uk": "Ukrainian",
-    "el": "Greek",
-    "he": "Hebrew",
-    "ro": "Romanian",
-    "hu": "Hungarian",
-    "cs": "Czech",
-    "da": "Danish",
-    "fi": "Finnish",
-    "no": "Norwegian",
-    "th": "Thai",
+    "ar": "العربية (Arabic)",
+    "en": "الإنجليزية (English)",
+    "fr": "الفرنسية (French)",
+    "es": "الإسبانية (Spanish)",
+    "de": "الألمانية (German)",
+    "it": "الإيطالية (Italian)",
+    "ru": "الروسية (Russian)",
+    "zh": "الصينية (Chinese)",
+    "ja": "اليابانية (Japanese)",
+    "hi": "الهندية (Hindi)",
+    "pt": "البرتغالية (Portuguese)",
+    "tr": "التركية (Turkish)",
+    "ko": "الكورية (Korean)",
+    "nl": "الهولندية (Dutch)",
+    "pl": "البولندية (Polish)",
+    "sv": "السويدية (Swedish)",
+    "vi": "الفيتنامية (Vietnamese)",
+    "id": "الإندونيسية (Indonesian)",
+    "fa": "الفارسية (Persian)",
+    "ur": "الأردية (Urdu)",
+    "uk": "الأوكرانية (Ukrainian)",
+    "el": "اليونانية (Greek)",
+    "he": "العبرية (Hebrew)",
+    "ro": "الرومانية (Romanian)",
+    "hu": "المجرية (Hungarian)",
+    "cs": "التشيكية (Czech)",
+    "da": "الدنماركية (Danish)",
+    "fi": "الفنلندية (Finnish)",
+    "no": "النرويجية (Norwegian)",
+    "th": "التايلاندية (Thai)",
+    "ms": "الملايوية (Malay)",
+    "bn": "البنغالية (Bengali)",
+    "sw": "السواحلية (Swahili)",
 }
-
-# قوالب متجددة وآمنة لجميع اللغات لتوليد محتوى فريد
-TEMPLATES = [
-    "Amazing insights about {topic} tailored for local audience in {lang}. Discover the secrets that change everything.",
-    "The shocking truth about {topic} in {lang}. Why everyone is talking about this massive trend right now.",
-    "Everything you know about {topic} is about to change. A complete unique breakdown in {lang}.",
-]
-
-
-def generate_script(lang_name, topic):
-  base_template = random.choice(TEMPLATES)
-  script = (
-      f"{base_template.format(topic=topic, lang=lang_name)}\n\n- Step 1: High"
-      f" retention hook for {topic}.\n- Step 2: Core value and storytelling"
-      f" in {lang_name}.\n- Step 3: Call to action for maximum engagement."
-  )
-  hashtags = f"#{topic.replace(' ', '')} #Viral #ForYou #{lang_name} #Trending"
-  return script, hashtags
-
 
 HTML_PAGE = """
 <!DOCTYPE html>
@@ -61,48 +54,52 @@ HTML_PAGE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Content Factory</title>
+    <title>Global Content Factory - 30+ Languages</title>
     <style>
-        body { font-family: Tahoma, sans-serif; background-color: #121212; color: #e0e0e0; padding: 20px; direction: rtl; }
-        .container { max-width: 650px; margin: 0 auto; background: #1e1e1e; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.6); }
-        h2 { color: #4CAF50; text-align: center; margin-bottom: 20px; }
-        label { display: block; margin-top: 15px; font-weight: bold; color: #b0bec5; }
-        select, input[type="text"] { width: 100%; padding: 12px; margin-top: 8px; background: #2d2d2d; color: #fff; border: 1px solid #444; border-radius: 6px; font-size: 14px; }
-        button { background: #4CAF50; color: white; border: none; padding: 14px 20px; margin-top: 25px; width: 100%; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
-        button:hover { background: #45a049; }
-        #result { margin-top: 25px; background: #252525; padding: 20px; border-radius: 8px; white-space: pre-wrap; border-right: 5px solid #4CAF50; line-height: 1.6; font-size: 14px; }
+        body { font-family: Tahoma, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 20px; direction: rtl; }
+        .container { max-width: 700px; margin: 0 auto; background: #1e293b; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        h2 { color: #38bdf8; text-align: center; margin-bottom: 25px; }
+        label { display: block; margin-top: 15px; font-weight: bold; color: #94a3b8; }
+        select, input[type="text"] { width: 100%; padding: 14px; margin-top: 8px; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 8px; font-size: 15px; }
+        .btn-global { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; border: none; padding: 16px 20px; margin-top: 30px; width: 100%; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-global:hover { opacity: 0.9; transform: translateY(-2px); }
+        #result { margin-top: 30px; background: #0f172a; padding: 25px; border-radius: 10px; white-space: pre-wrap; border-right: 6px solid #38bdf8; line-height: 1.8; font-size: 15px; }
+        .platform-tags { display: flex; gap: 10px; margin-top: 10px; justify-content: center; color: #38bdf8; font-size: 13px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>مصنع المحتوى العالمي الذكي 🌍</h2>
+        <h2>مصنع المحتوى العالمي الفائق 🌍🚀</h2>
+        <div class="platform-tags">
+            <span>📺 YouTube Shorts</span> | <span>📸 Instagram Reels</span> | <span>🎵 TikTok</span>
+        </div>
         <form>
-            <label>موضوع الفيديو أو الفكرة العامة:</label>
-            <input type="text" id="topic" placeholder="Example: AI Secrets" required>
+            <label>أدخل فكرة الفيديو العامة:</label>
+            <input type="text" id="topic" placeholder="مثال: أسرار وخفايا الذكاء الاصطناعي" required>
             
-            <label>اختر اللغة المستهدفة:</label>
+            <label>اختر لغة الجمهور المستهدف (أكثر من 30 لغة عالمية):</label>
             <select id="lang">
                 {% for code, name in languages.items() %}
                 <option value="{{ code }}">{{ name }}</option>
                 {% endfor %}
             </select>
             
-            <button type="button" onclick="sendRequest()">توليد سيناريو فريد ومتجدد</button>
+            <button type="button" class="btn-global" onclick="generateContent()">⚡ توليد المحتوى العالمي بضغطة زر</button>
         </form>
         
         <div id="result" style="display:none;"></div>
     </div>
 
     <script>
-        async function sendRequest() {
+        async function generateContent() {
             const topic = document.getElementById('topic').value;
             const lang = document.getElementById('lang').value;
             const resDiv = document.getElementById('result');
             
-            if(!topic) { alert('الرجاء إدخال الموضوع'); return; }
+            if(!topic) { alert('الرجاء إدخال الفكرة أو الموضوع أولاً'); return; }
 
             resDiv.style.display = 'block';
-            resDiv.innerHTML = '🔄 جاري توليد السيناريو...';
+            resDiv.innerHTML = '🔄 جاري توليد السيناريو العالمي باللغة المطلوبة...';
             
             try {
                 const response = await fetch('/generate', {
@@ -112,12 +109,12 @@ HTML_PAGE = """
                 });
                 const data = await response.json();
                 if(data.success) {
-                    resDiv.innerHTML = `<b>Language:</b> ${data.lang_name}<br><b>Topic:</b> ${data.topic}<br><br><b>Script:</b><br>${data.script}<br><br><b>Tags:</b><br>${data.hashtags}`;
+                    resDiv.innerHTML = `<b>🌐 اللغة المستهدفة:</b> ${data.lang_name}<br><b>🎯 الموضوع:</b> ${data.topic}<br><br><b>🎬 السيناريو الاحترافي (جاهز لـ TikTok, Reels, Shorts):</b><br><hr style="border-color: #334155; margin: 15px 0;">${data.script}<br><br><b>🏷️ الهاشتاغات:</b><br><span style="color: #38bdf8;">${data.hashtags}</span>`;
                 } else {
-                    resDiv.innerHTML = 'حدث خطأ في الخادم.';
+                    resDiv.innerHTML = '⚠️ خطأ: ' + (data.error || 'تأكد من إعداد المفتاح في المنصة');
                 }
             } catch(e) {
-                resDiv.innerHTML = 'خطأ في الاتصال بالخادم.';
+                resDiv.innerHTML = '❌ خطأ في الاتصال بالخادم.';
             }
         }
     </script>
@@ -133,20 +130,37 @@ def index():
 
 @app.route("/generate", methods=["POST"])
 def generate():
-  data = request.json or {}
-  lang_code = data.get("lang", "en")
-  topic = data.get("topic", "Technology")
+  try:
+    data = request.json or {}
+    lang_code = data.get("lang", "en")
+    topic = data.get("topic", "Technology")
+    lang_name = WORLD_LANGUAGES.get(lang_code, "English")
 
-  lang_name = WORLD_LANGUAGES.get(lang_code, "English")
-  script, hashtags = generate_script(lang_name, topic)
+    prompt = (
+        f"You are a professional global content creator for TikTok, Instagram"
+        f" Reels, and YouTube Shorts. Create a viral video script about"
+        f" '{topic}', written 100% in {lang_name}. Structure it with a powerful"
+        " hook, core storytelling, and a clear call to action. Provide 5 viral"
+        f" hashtags in {lang_name}."
+    )
 
-  return jsonify({
-      "success": True,
-      "lang_name": lang_name,
-      "topic": topic,
-      "script": script,
-      "hashtags": hashtags,
-  })
+    response = model.generate_content(prompt)
+    script = (
+        response.text
+        if response and response.text
+        else "Failed to generate."
+    )
+    hashtags = f"#{topic.replace(' ', '')} #Viral #Shorts #Reels #TikTok #{lang_code.upper()}"
+
+    return jsonify({
+        "success": True,
+        "lang_name": lang_name,
+        "topic": topic,
+        "script": script,
+        "hashtags": hashtags,
+    })
+  except Exception as e:
+    return jsonify({"success": False, "error": str(e)})
 
 
 if __name__ == "__main__":

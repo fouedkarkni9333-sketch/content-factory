@@ -4,15 +4,16 @@ import google.generativeai as genai
 
 app = Flask(__name__)
 
-# قراءة مفتاح الذكاء الاصطناعي بشكل آمن من إعدادات السيرفر
+# قراءة مفتاح الذكاء الاصطناعي الخاص بك بشكل آمن
 API_KEY = os.environ.get("GEMINI_API_KEY")
 if API_KEY:
   genai.configure(api_key=API_KEY)
 
-# استخدام نموذج gemini-pro لضمان الاستقرار التام وعدم ظهور أخطاء 404
+# الاتصال المباشر بي لأكون أداة صناعة المحتوى الخاصة بك وحدك
+# نستخدم اسم النموذج القياسي المعتمد لضمان عمله فوراً وبدون أي أخطاء
 model = genai.GenerativeModel("gemini-pro")
 
-# قائمة شاملة تضم أكثر من 30 لغة عالمية لتغطية كافة شعوب العالم
+# أكثر من 30 لغة عالمية لتخترق بها كل الأسواق والجمهور أينما كان
 WORLD_LANGUAGES = {
     "ar": "العربية (Arabic)",
     "en": "الإنجليزية (English)",
@@ -55,7 +56,7 @@ HTML_PAGE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Content Factory - 30+ Languages</title>
+    <title>استديو المحتوى الشخصي العالمي</title>
     <style>
         body { font-family: Tahoma, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 20px; direction: rtl; }
         .container { max-width: 700px; margin: 0 auto; background: #1e293b; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
@@ -70,22 +71,22 @@ HTML_PAGE = """
 </head>
 <body>
     <div class="container">
-        <h2>مصنع المحتوى العالمي الفائق 🌍🚀</h2>
+        <h2>استديو المحتوى الشخصي العالمي 🌍🚀</h2>
         <div class="platform-tags">
             <span>📺 YouTube Shorts</span> | <span>📸 Instagram Reels</span> | <span>🎵 TikTok</span>
         </div>
         <form>
-            <label>أدخل فكرة الفيديو العامة:</label>
-            <input type="text" id="topic" placeholder="مثال: أسرار وخفايا الذكاء الاصطناعي" required>
+            <label>أدخل فكرة الفيديو أو القصة:</label>
+            <input type="text" id="topic" placeholder="مثال: أسرار وخفايا لا يعرفها أحد" required>
             
-            <label>اختر لغة الجمهور المستهدف (أكثر من 30 لغة عالمية):</label>
+            <label>اختر لغة السوق المستهدف:</label>
             <select id="lang">
                 {% for code, name in languages.items() %}
                 <option value="{{ code }}">{{ name }}</option>
                 {% endfor %}
             </select>
             
-            <button type="button" class="btn-global" onclick="generateContent()">⚡ توليد المحتوى العالمي بضغطة زر</button>
+            <button type="button" class="btn-global" onclick="generateContent()">⚡ توليد سيناريو فيروسي شخصي</button>
         </form>
         
         <div id="result" style="display:none;"></div>
@@ -100,7 +101,7 @@ HTML_PAGE = """
             if(!topic) { alert('الرجاء إدخال الفكرة أو الموضوع أولاً'); return; }
 
             resDiv.style.display = 'block';
-            resDiv.innerHTML = '🔄 جاري توليد السيناريو العالمي باللغة المطلوبة...';
+            resDiv.innerHTML = '🔄 جاري توليد السيناريو الخارق...';
             
             try {
                 const response = await fetch('/generate', {
@@ -110,7 +111,7 @@ HTML_PAGE = """
                 });
                 const data = await response.json();
                 if(data.success) {
-                    resDiv.innerHTML = `<b>🌐 اللغة المستهدفة:</b> ${data.lang_name}<br><b>🎯 الموضوع:</b> ${data.topic}<br><br><b>🎬 السيناريو الاحترافي (جاهز لـ TikTok, Reels, Shorts):</b><br><hr style="border-color: #334155; margin: 15px 0;">${data.script}<br><br><b>🏷️ الهاشتاغات:</b><br><span style="color: #38bdf8;">${data.hashtags}</span>`;
+                    resDiv.innerHTML = `<b>🌐 اللغة:</b> ${data.lang_name}<br><b>🎯 الفكرة:</b> ${data.topic}<br><br><b>🎬 السيناريو الاحترافي:</b><br><hr style="border-color: #334155; margin: 15px 0;">${data.script}<br><br><b>🏷️ الهاشتاغات المقترحة:</b><br><span style="color: #38bdf8;">${data.hashtags}</span>`;
                 } else {
                     resDiv.innerHTML = '⚠️ خطأ: ' + (data.error || 'تأكد من إعداد المفتاح في المنصة');
                 }
@@ -138,11 +139,12 @@ def generate():
     lang_name = WORLD_LANGUAGES.get(lang_code, "English")
 
     prompt = (
-        f"You are a professional global content creator for TikTok, Instagram"
-        f" Reels, and YouTube Shorts. Create a viral video script about"
-        f" '{topic}', written 100% in {lang_name}. Structure it with a powerful"
-        " hook, core storytelling, and a clear call to action. Provide 5 viral"
-        f" hashtags in {lang_name}."
+        f"You are an elite viral content creator helping me build massive"
+        f" engagement on TikTok, Instagram Reels, and YouTube Shorts. Create a"
+        f" hyper-engaging, viral video script and storytelling about '{topic}',"
+        f" written 100% in {lang_name}. Make it captivating with a strong hook,"
+        f" fast pacing, and a compelling call to action. Also provide 5 highly"
+        f" targeted viral hashtags in {lang_name}."
     )
 
     response = model.generate_content(prompt)

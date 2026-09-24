@@ -1,16 +1,14 @@
 import os
 from flask import Flask, jsonify, render_template_string, request
-import google.generativeai as genai
+from google import genai
 
 app = Flask(__name__)
 
-# قراءة مفتاح الذكاء الاصطناعي الخاص بك بشكل آمن
+# الاتصال الحديث والآمن بالذكاء الاصطناعي لمنع الأخطاء نهائياً
+client = None
 API_KEY = os.environ.get("GEMINI_API_KEY")
 if API_KEY:
-  genai.configure(api_key=API_KEY)
-
-# استخدام الصيغة المعتمدة التي تتوافق مع خوادم الاستضافة وتمنع خطأ 404 نهائياً
-model = genai.GenerativeModel("gemini-1.5-flash")
+  client = genai.Client(api_key=API_KEY)
 
 # أكثر من 30 لغة عالمية لتخترق بها كل الأسواق والجمهور أينما كان
 WORLD_LANGUAGES = {
@@ -132,6 +130,12 @@ def index():
 @app.route("/generate", methods=["POST"])
 def generate():
   try:
+    if not client:
+      return jsonify({
+          "success": False,
+          "error": "مفتاح GEMINI_API_KEY غير معرّف في الخادم",
+      })
+
     data = request.json or {}
     lang_code = data.get("lang", "en")
     topic = data.get("topic", "Technology")
@@ -146,12 +150,13 @@ def generate():
         f" targeted viral hashtags in {lang_name}."
     )
 
-    response = model.generate_content(prompt)
-    script = (
-        response.text
-        if response and response.text
-        else "Failed to generate."
+    # استخدام الطريقة الحديثة والمستقرة للاتصال بنموذج الفلاش
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt,
     )
+
+    script = response.text if response and response.text else "Failed to generate."
     hashtags = f"#{topic.replace(' ', '')} #Viral #Shorts #Reels #TikTok #{lang_code.upper()}"
 
     return jsonify({

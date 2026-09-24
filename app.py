@@ -1,14 +1,10 @@
 import os
+import requests
 from flask import Flask, jsonify, render_template_string, request
-from google import genai
 
 app = Flask(__name__)
 
-# الاتصال الحديث والآمن بالذكاء الاصطناعي لمنع الأخطاء نهائياً
-client = None
 API_KEY = os.environ.get("GEMINI_API_KEY")
-if API_KEY:
-  client = genai.Client(api_key=API_KEY)
 
 # أكثر من 30 لغة عالمية لتخترق بها كل الأسواق والجمهور أينما كان
 WORLD_LANGUAGES = {
@@ -130,10 +126,10 @@ def index():
 @app.route("/generate", methods=["POST"])
 def generate():
   try:
-    if not client:
+    if not API_KEY:
       return jsonify({
           "success": False,
-          "error": "مفتاح GEMINI_API_KEY غير معرّف في الخادم",
+          "error": "مفتاح GEMINI_API_KEY غير معرّف في البيئة (Environment Variables)",
       })
 
     data = request.json or {}
@@ -150,13 +146,29 @@ def generate():
         f" targeted viral hashtags in {lang_name}."
     )
 
-    # استخدام الطريقة الحديثة والمستقرة للاتصال بنموذج الفلاش
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt,
+    # الاتصال المباشر عبر REST API لتجاوز أي مشاكل في المكتبات البرمجية
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+    headers = {"Content-Type": "application/json"}
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+
+    api_response = requests.post(url, headers=headers, json=payload)
+    res_json = api_response.json()
+
+    if api_response.status_code != 200:
+      error_message = (
+          res_json.get("error", {}).get("message")
+          or f"HTTP Error {api_response.status_code}"
+      )
+      return jsonify({"success": False, "error": error_message})
+
+    # استخراج النص بطريقة آمنة
+    script = (
+        res_json.get("candidates", [{}])[0]
+        .get("content", {})
+        .get("parts", [{}])[0]
+        .get("text", "Failed to generate.")
     )
 
-    script = response.text if response and response.text else "Failed to generate."
     hashtags = f"#{topic.replace(' ', '')} #Viral #Shorts #Reels #TikTok #{lang_code.upper()}"
 
     return jsonify({

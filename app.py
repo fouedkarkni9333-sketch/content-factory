@@ -9,7 +9,8 @@ API_KEY = os.environ.get("GEMINI_API_KEY")
 if API_KEY:
   genai.configure(api_key=API_KEY)
 
-model = genai.GenerativeModel("gemini-1.5-flash")
+# تم تعديل النموذج هنا حصراً ليتوافق مع الاتصال ويحل خطأ 404
+model = genai.GenerativeModel("gemini-pro")
 
 # قائمة شاملة تضم أكثر من 30 لغة عالمية لتغطية كافة شعوب العالم
 WORLD_LANGUAGES = {

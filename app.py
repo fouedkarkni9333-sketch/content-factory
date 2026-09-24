@@ -9,8 +9,8 @@ API_KEY = os.environ.get("GEMINI_API_KEY")
 if API_KEY:
   genai.configure(api_key=API_KEY)
 
-# استخدام أحدث نموذج Gemini 2.5 لتوليد النصوص الفيروسية بسرعة واحترافية
-model = genai.GenerativeModel("gemini-2.5-flash")
+# استخدام أحدث نموذج مدعوم لتوليد النصوص الفيروسية بسرعة واحترافية
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 # قائمة شاملة تضم أكثر من 30 لغة عالمية لتغطية كافة شعوب العالم
 WORLD_LANGUAGES = {

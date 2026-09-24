@@ -10,8 +10,8 @@ if API_KEY:
   genai.configure(api_key=API_KEY)
 
 # الاتصال المباشر بي لأكون أداة صناعة المحتوى الخاصة بك وحدك
-# نستخدم اسم النموذج القياسي المعتمد لضمان عمله فوراً وبدون أي أخطاء
-model = genai.GenerativeModel("gemini-pro")
+# تم تحديث اسم النموذج لضمان عمله فوراً وبدون أي أخطاء
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 # أكثر من 30 لغة عالمية لتخترق بها كل الأسواق والجمهور أينما كان
 WORLD_LANGUAGES = {

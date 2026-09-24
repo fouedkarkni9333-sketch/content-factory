@@ -1,4 +1,2 @@
-Flask
-requests
-gtts
-google-generativeai
+flask
+google-genai

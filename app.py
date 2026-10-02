@@ -159,7 +159,6 @@ def dashboard():
         session['session_id'] = os.urandom(16).hex()
     
     if request.method == 'POST':
-        # دعم الطلبات العادية أو طلبات الـ AJAX المباشرة
         user_api_key = request.form.get("api_key", "").strip()
         req_type = request.form.get("req_type", "research")
         query = request.form.get("query", "").strip()
@@ -172,8 +171,7 @@ def dashboard():
             content, blueprint = generate_ai_response(req_type, query, user_api_key)
             item_data = persist_to_db(session['session_id'], req_type, query, content, blueprint)
             
-            # إذا كان الطلب مرسلاً عبر AJAX، أجب بصيغة JSON لمنع أي تحديث للصفحة
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type and 'application/json' in request.content_type:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or (request.content_type and 'application/json' in request.content_type):
                 return jsonify({"status": "success", "item": item_data})
             
         return redirect(url_for('dashboard'))
@@ -236,9 +234,10 @@ def dashboard():
             
             <div class="card">
                 <h3>🛠 لوحة التحكم والعمليات المتقدمة</h3>
-                <form id="ai-form" onsubmit="submitFormAjax(event)">
+                <!-- إضافة autocomplete="off" لمنع تفاعل متصفح كروم المزعج مع حقول كلمات المرور والطلبات -->
+                <form id="ai-form" autocomplete="off" onsubmit="submitFormAjax(event)">
                     <label><b>🔑 مفتاح الـ API:</b></label>
-                    <input type="password" name="api_key" id="api-key-input" value="{{ saved_api_key }}" placeholder="ألصق مفتاح Gemini الخاص بك هنا..." autocomplete="off">
+                    <input type="password" name="api_key" id="api-key-input" value="{{ saved_api_key }}" placeholder="ألصق مفتاح Gemini الخاص بك هنا..." autocomplete="new-password">
 
                     <label><b>اختر نمط التشغيل المتقدم:</b></label>
                     <select name="req_type" id="req-type-select">
@@ -293,12 +292,20 @@ def dashboard():
 
         <script>
             function submitFormAjax(event) {
-                event.preventDefault();
+                // منع أي إعادة تحميل أو مسح للنموذج تماماً
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+
                 const form = document.getElementById('ai-form');
                 const btn = document.getElementById('submit-btn');
                 const queryInput = document.getElementById('query-input');
                 const sysStatus = document.getElementById('sys-status');
                 
+                const queryVal = queryInput.value.trim();
+                if(!queryVal) return false;
+
                 const formData = new FormData(form);
                 
                 btn.disabled = true;
@@ -353,7 +360,7 @@ def dashboard():
                             document.getElementById(`history-item-${item.id}`).style.opacity = '1';
                         }, 50);
 
-                        // مسح خانة الطلب فقط لتتمكن من إدخال طلب جديد، دون مسح المفتاح أو إعادة تحميل الصفحة
+                        // مسح خانة الطلب بأمان لتبدأ طلباً جديداً
                         queryInput.value = '';
                     }
                 })
@@ -363,6 +370,8 @@ def dashboard():
                     btn.innerText = "🚀 تشغيل المعالجة فائقة السرعة";
                     sysStatus.innerText = "⚠️ حدث خطأ أثناء الاتصال بالخادم.";
                 });
+
+                return false;
             }
 
             function escapeHtml(text) {

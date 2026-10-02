@@ -15,7 +15,7 @@ else:
     ssl._create_default_https_context = _create_unverified_https_context
 
 try:
-    from flask import Flask, render_template_string, request, redirect, url_for, send_file, session
+    from flask import Flask, render_template_string, request, redirect, url_for, send_file, session, jsonify
     FLASK_AVAILABLE = True
 except ImportError:
     FLASK_AVAILABLE = False
@@ -159,6 +159,7 @@ def dashboard():
         session['session_id'] = os.urandom(16).hex()
     
     if request.method == 'POST':
+        # دعم الطلبات العادية أو طلبات الـ AJAX المباشرة
         user_api_key = request.form.get("api_key", "").strip()
         req_type = request.form.get("req_type", "research")
         query = request.form.get("query", "").strip()
@@ -166,9 +167,14 @@ def dashboard():
         if user_api_key:
             session['saved_api_key'] = user_api_key 
 
+        content, blueprint = "", ""
         if query:
             content, blueprint = generate_ai_response(req_type, query, user_api_key)
-            persist_to_db(session['session_id'], req_type, query, content, blueprint)
+            item_data = persist_to_db(session['session_id'], req_type, query, content, blueprint)
+            
+            # إذا كان الطلب مرسلاً عبر AJAX، أجب بصيغة JSON لمنع أي تحديث للصفحة
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type and 'application/json' in request.content_type:
+                return jsonify({"status": "success", "item": item_data})
             
         return redirect(url_for('dashboard'))
 
@@ -230,12 +236,12 @@ def dashboard():
             
             <div class="card">
                 <h3>🛠 لوحة التحكم والعمليات المتقدمة</h3>
-                <form method="POST" onsubmit="showLoading(this)">
+                <form id="ai-form" onsubmit="submitFormAjax(event)">
                     <label><b>🔑 مفتاح الـ API:</b></label>
                     <input type="password" name="api_key" id="api-key-input" value="{{ saved_api_key }}" placeholder="ألصق مفتاح Gemini الخاص بك هنا..." autocomplete="off">
 
                     <label><b>اختر نمط التشغيل المتقدم:</b></label>
-                    <select name="req_type">
+                    <select name="req_type" id="req-type-select">
                         <option value="blueprint">📐 مخطط هندسي ومعماري ذكي متقدم (SVG)</option>
                         <option value="image">🎨 تصميم بصري ورسومات هندسية دقيقة (SVG)</option>
                         <option value="research">📚 تحليل وبحث استراتيجي وعميق</option>
@@ -259,7 +265,7 @@ def dashboard():
                 <div id="registry-container">
                     {% if registry %}
                         {% for item in registry %}
-                            <div class="history-item">
+                            <div class="history-item" id="history-item-{{ item.id }}">
                                 <span class="tag">{{ item.type }}</span> <b style="color: var(--text-muted);">[{{ item.time }}]</b>
                                 <p><b>الطلب:</b> {{ item.query }}</p>
                                 <div class="output-box">{{ item.content }}</div>
@@ -272,25 +278,100 @@ def dashboard():
                                     <button class="svg-download-btn" type="button" onclick="downloadSVG('svg-box-{{ item.id }}', {{ item.id }})">📥 تنزيل المخطط حصرياً كملف SVG جاهز</button>
                                 {% endif %}
                                 
-                                <button class="speak-btn" type="button" onclick="speakText('{{ item.content | replace("'", "") | replace('"', '') | replace("\n", " ") }}')">🗣 الاستماع للتقرير صوتياً</button>
+                                <button class="speak-btn" type="button" onclick="speakTextFromElement('history-item-{{ item.id }}')">🗣 الاستماع للتقرير صوتياً</button>
                                 <a href="/export/{{ item.id }}" target="_blank">
                                     <button class="export-btn" type="button">📥 تصدير التقرير النصي الكامل (TXT)</button>
                                 </a>
                             </div>
                         {% endfor %}
                     {% else %}
-                        <p style="color: var(--text-muted); text-align: center; padding: 20px;">لا توجد مخرجات مسجلة في هذه الجلسة بعد. ابدأ بإدخال طلبك بالأعلى!</p>
+                        <p id="no-registry-msg" style="color: var(--text-muted); text-align: center; padding: 20px;">لا توجد مخرجات مسجلة في هذه الجلسة بعد. ابدأ بإدخال طلبك بالأعلى!</p>
                     {% endif %}
                 </div>
             </div>
         </div>
 
         <script>
-            function showLoading(form) {
+            function submitFormAjax(event) {
+                event.preventDefault();
+                const form = document.getElementById('ai-form');
                 const btn = document.getElementById('submit-btn');
+                const queryInput = document.getElementById('query-input');
+                const sysStatus = document.getElementById('sys-status');
+                
+                const formData = new FormData(form);
+                
                 btn.disabled = true;
                 btn.innerText = "⏳ جاري إرسال الطلب والمعالجة...";
-                document.getElementById('sys-status').innerText = "⏳ النظام يعمل بأقصى طاقة، يرجى الانتظار...";
+                sysStatus.innerText = "⏳ النظام يعمل بأقصى طاقة، يرجى الانتظار...";
+
+                fetch('/', {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    btn.disabled = false;
+                    btn.innerText = "🚀 تشغيل المعالجة فائقة السرعة";
+                    sysStatus.innerText = "🟢 النظام العالمي متصل، مؤمن، ومستعد للعمل بالسرعة القصوى";
+
+                    if(data.status === "success") {
+                        const item = data.item;
+                        const container = document.getElementById('registry-container');
+                        const noMsg = document.getElementById('no-registry-msg');
+                        if(noMsg) noMsg.remove();
+
+                        let blueprintHTML = '';
+                        if(item.blueprint) {
+                            blueprintHTML = `
+                                <div class="blueprint-container" id="svg-box-${item.id}">
+                                    <p style="color: #1f2937; font-size: 13px; margin-bottom: 5px; font-weight: bold;"><b>📊 المخطط الهندسي / الرسم المرئي:</b></p>
+                                    ${item.blueprint}
+                                </div>
+                                <button class="svg-download-btn" type="button" onclick="downloadSVG('svg-box-${item.id}', ${item.id})">📥 تنزيل المخطط حصرياً كملف SVG جاهز</button>
+                            `;
+                        }
+
+                        const newItemHTML = `
+                            <div class="history-item" id="history-item-${item.id}" style="opacity: 0; transition: opacity 0.5s ease;">
+                                <span class="tag">${item.type}</span> <b style="color: var(--text-muted);">[${item.time}]</b>
+                                <p><b>الطلب:</b> ${escapeHtml(item.query)}</p>
+                                <div class="output-box">${escapeHtml(item.content)}</div>
+                                ${blueprintHTML}
+                                <button class="speak-btn" type="button" onclick="speakTextFromElement('history-item-${item.id}')">🗣 الاستماع للتقرير صوتياً</button>
+                                <a href="/export/${item.id}" target="_blank">
+                                    <button class="export-btn" type="button">📥 تصدير التقرير النصي الكامل (TXT)</button>
+                                </a>
+                            </div>
+                        `;
+
+                        container.insertAdjacentHTML('afterbegin', newItemHTML);
+                        setTimeout(() => {
+                            document.getElementById(`history-item-${item.id}`).style.opacity = '1';
+                        }, 50);
+
+                        // مسح خانة الطلب فقط لتتمكن من إدخال طلب جديد، دون مسح المفتاح أو إعادة تحميل الصفحة
+                        queryInput.value = '';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    btn.disabled = false;
+                    btn.innerText = "🚀 تشغيل المعالجة فائقة السرعة";
+                    sysStatus.innerText = "⚠️ حدث خطأ أثناء الاتصال بالخادم.";
+                });
+            }
+
+            function escapeHtml(text) {
+                return text
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
             }
 
             function startVoiceRecognition() {
@@ -306,7 +387,11 @@ def dashboard():
                 recognition.start();
             }
 
-            function speakText(text) {
+            function speakTextFromElement(elementId) {
+                const el = document.getElementById(elementId);
+                const outputBox = el.querySelector('.output-box');
+                if(!outputBox) return;
+                const text = outputBox.innerText;
                 if (!('speechSynthesis' in window)) return;
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
@@ -327,7 +412,7 @@ def dashboard():
                     source = source.replace(/^<svg/, '<svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)"');
                 }
                 if(!source.match(/^<\?xml/)){
-                    source = '<?xml version="1.0" encoding="utf-8"?>\r\n' + source;
+                    source = '<?xml version="1.0" encoding="utf-8"?>\\r\\n' + source;
                 }
                 const blob = new Blob([source], {type: "image/svg+xml;charset=utf-8"});
                 const url = URL.createObjectURL(blob);
@@ -358,13 +443,13 @@ def export_item(item_id):
         return "العنصر المطلوب غير موجود أو انتهت صلاحية الجلسة", 404
     
     filename = f"diamond_global_report_{item_id}.txt"
-    file_content = f"========================================\n" \
-                   f"💎 تقرير النواة الماسية العالمية المتقدمة\n" \
-                   f"========================================\n" \
-                   f"نوع الطلب: {target_item['type']}\n" \
-                   f"وقت التوليد: {target_item['time']}\n" \
-                   f"نص الاستعلام: {target_item['query']}\n\n" \
-                   f"النتيجة والتحليل التقني:\n{target_item['content']}\n"
+    file_content = f"========================================\\n" \
+                   f"💎 تقرير النواة الماسية العالمية المتقدمة\\n" \
+                   f"========================================\\n" \
+                   f"نوع الطلب: {target_item['type']}\\n" \
+                   f"وقت التوليد: {target_item['time']}\\n" \
+                   f"نص الاستعلام: {target_item['query']}\\n\\n" \
+                   f"النتيجة والتحليل التقني:\\n{target_item['content']}\\n"
     
     filepath = os.path.join(BASE_DIR, filename)
     with open(filepath, "w", encoding="utf-8") as f:
